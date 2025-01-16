@@ -1,5 +1,6 @@
 import pyopencl as cl
 from typing import Tuple
+from whatllm import ERRORS
 
 def get_machine_spec() -> Tuple[str, str, float]:
     """ Finds the most vram avaliable 
@@ -22,7 +23,11 @@ def get_machine_spec() -> Tuple[str, str, float]:
         devices = platform.get_devices(device_type=cl.device_type.GPU)
         for device in devices:
             # global_mem_size is in bytes
-            curr_vram = round(device.global_mem_size / gibi, 2)
+            try:
+                curr_vram = round(device.global_mem_size / gibi, 2)
+            except:
+                raise ERRORS[2] # VRAM_ERROR
+            
             if curr_vram > total_vram:
                 total_vram = curr_vram
                 plat_name = platform.name
@@ -31,4 +36,4 @@ def get_machine_spec() -> Tuple[str, str, float]:
     if total_vram != 0.0:
         return [plat_name, device_name, total_vram]
     else:
-        raise Exception("Unable to Get Hardware Specifcations.")
+        raise ERRORS[3] # HARDWARE_ERROR
