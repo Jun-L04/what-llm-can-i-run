@@ -54,22 +54,38 @@ def get_hardware_info():
 
 # get a list of recommended LLMs to run based on hardware spec
 @app.command(name="list")
-def get_llm_list_wrapper(precision: str = typer.Argument("fp16", help="Precision of the model. Lower means more overhead.")):
+def get_llm_list_wrapper(
+    quantize: bool = typer.Option(False, "--quantize", "-q", help="Enable quantization."),
+    precision: str = typer.Argument("bf16", help="Precision of the model.")
+):
+    """ Returns a list of potentially suitable LLMs to run locally.
+    Parameters:
+        quantize: bool to consider quantization.
+        precision: str representing the precision of the model.
+    Returns:
+        None
     """
-    
-    """
-    # check if user given precision is valid
-    if precision.lower() not in ['int4', 'int8', 'fp16', 'fp32']:
-        typer.echo("Precision should be: 'int4', 'int8', 'fp16', or 'fp32'.")
-        raise typer.Exit()
-    
-    # retrieve hardware specs first
-    capacity = get_total_ram() # default to cpu inference
-    # check gpu availability
-    if (vram := get_machine_spec()[2]):
-        capacity = vram # gpu inference should be faster than cpu, even if vram < ram
+    # check the quantize flag
+    if quantize:
+        if precision.lower() not in ['int4', 'int8']: # wrong quantization precision
+            typer.echo("Quantize only to: 'int4' or 'int8'.")
+            raise typer.Exit()
+        else: # some models cannot be quantized
+            typer.echo("Theoretically, you may try to quantize the following models for best performance.")
+    else: # no quantization
+        if precision.lower() in ['fp32']:
+            typer.echo("You may try upcasting the following models from their default fp16/bf16 precision.")
+        if precision.lower() not in ['fp16', 'bf16', 'fp32']:
+            typer.echo("Precision should be: 'fp16', 'bf16', or 'fp32'.")
+            raise typer.Exit()
 
-    llm_list = get_llm_list(precision, capacity) 
+    # retrieves hardware specs first
+    capacity = get_total_ram()  # default to CPU inference
+    # check GPU availability
+    if (vram := get_machine_spec()[2]):
+        capacity = vram  # GPU inference most likely faster than CPU, even if VRAM < RAM
+
+    llm_list = get_llm_list(precision, capacity)
     typer.echo(llm_list)
 
 
