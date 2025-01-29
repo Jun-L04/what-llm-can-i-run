@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "whatllm"
+version = "0.1.0"
+description = "A CLI tool to help you decide what kind of LLM you can run locally."
+license = "MIT AND (Apache-2.0 OR BSD-2-Clause)"
+keywords = ["LLM", "run locally", "open llm leaderboard", "hardware spec"]
+authors = [
+    { name = "Junyang Lu", email = "jlu@umass.edu" },
+]
+
+dependencies = [
+    "pyopencl",
+    "pandas",
+    "typer",
+    "datasets",
+    "re"
+    # more dependencies here
+]
+
+[project.scripts] # cli tool entry point
+whatllm = "whatllm.cli:app"

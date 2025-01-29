@@ -3,11 +3,11 @@ from datasets import load_dataset
 from huggingface_hub import list_models
 import pandas as pd
 import re
+import os
 # grateful that pandas supports emojis
 
-# TODO: filter df based on 'fp16' or 'bf16'
 # TODO: check if architecture allows for quantization
-# TODO: install the model via cli
+# TODO: install the model via cli wait thats kinda like ollama then
 
 # run once or something
 def list_to_excel():
@@ -17,26 +17,31 @@ def list_to_excel():
     # conversion into a pandas DataFrame
     df = dataset.to_pandas()
 
-    # let's review it in excel real quick
+    # conversion to excel to make visualization easier
     df.to_excel("leaderboard.xlsx")
 
 
 def get_llm_list(precision: str, capacity: float) -> pd.DataFrame:
     """ Depending on user input, prolly, give us the appropriate list of llms
     """
+    # first check if we have the leaderboard downloaded
+    if not os.path.exists("leaderboard.xlsx"):
+        list_to_excel()
+
     # i'll keep two copies of what is essentially the same cuz i can't think of anything for now
     precision_str = precision
     precision = float("".join(re.findall(r'\d+', precision))) # parse precision into float
-    max_param = precision / 8.0 * capacity # unit memory usage per 1B params * total capacity = max param we can store
+    max_param = capacity / (precision / 8.0) # total capacity / unit memory usage per 1B params = max param we can store
     llm_list = pd.DataFrame(columns=['Model Name', 'Average Score', 'Architecture'])
     precision_mapping ={'fp16': 'float16', 'bf16': 'bfloat16'}
     df = pd.read_excel("leaderboard.xlsx")
     # filter by model parameters, and precision if applicable
-    filtered_df = df[
+    filtered_df = df[ 
         (df['#Params (B)'] <= max_param) &
-        (df['Precision'] == precision_mapping.get(precision_str.lower(), None))
+        ((precision_str.lower() not in ['fp16', 'bf16']) |
+            (df['Precision'] == precision_mapping.get(precision_str.lower(), False)))
         ]  # can None be an error or exception that we can return or log?
-    
+
     sorted_df = filtered_df.sort_values(by='Average ⬆️', ascending=False).reset_index(drop=True)  # sort by average score in descending order and get natural indexing
     #sorted_df.to_excel("sorted_leaderboard.xlsx")
 
@@ -50,14 +55,6 @@ def get_llm_list(precision: str, capacity: float) -> pd.DataFrame:
     llm_list.index = llm_list.index + 1 # looks nicer when printed
 
     return llm_list
-
-def test():
-    df = pd.read_excel("leaderboard.xlsx")
-    archi = set()
-    for idx in range(len(df)):
-        archi.add(df['Architecture'][idx])
-
-    print(archi)
 
 
 
